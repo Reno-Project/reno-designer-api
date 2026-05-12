@@ -52,6 +52,61 @@ moodboardItemsRouter.get(
   }),
 );
 
+// GET /api/v1/moodboard-items/:id
+moodboardItemsRouter.get(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const userId = (req as AuthedRequest).auth.userId;
+    const id = uuid.parse(req.params.id);
+    const [row] = await db
+      .select({ item: moodboardItems })
+      .from(moodboardItems)
+      .innerJoin(moodboards, eq(moodboards.id, moodboardItems.moodboardId))
+      .where(and(eq(moodboardItems.id, id), eq(moodboards.createdBy, userId)))
+      .limit(1);
+    if (!row) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    res.json(fromDb(row.item));
+  }),
+);
+
+// PUT /api/v1/moodboard-items/:id — upsert (insert with this id, or update if it exists)
+moodboardItemsRouter.put(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const userId = (req as AuthedRequest).auth.userId;
+    const id = uuid.parse(req.params.id);
+    const body = stripProtected(itemSchema.parse(req.body));
+    if (!(await userOwnsMoodboard(userId, body.moodboard_id as string))) {
+      res.status(404).json({ error: "moodboard not found" });
+      return;
+    }
+    const existing = await db
+      .select({ id: moodboardItems.id })
+      .from(moodboardItems)
+      .innerJoin(moodboards, eq(moodboards.id, moodboardItems.moodboardId))
+      .where(and(eq(moodboardItems.id, id), eq(moodboards.createdBy, userId)))
+      .limit(1);
+
+    if (existing.length === 0) {
+      const values = { ...toDb(body), id };
+      const [row] = await db.insert(moodboardItems).values(values as never).returning();
+      res.status(201).json(fromDb(row!));
+      return;
+    }
+    const update = { ...body };
+    delete (update as Record<string, unknown>).moodboard_id;
+    const [row] = await db
+      .update(moodboardItems)
+      .set(toDb(update) as never)
+      .where(eq(moodboardItems.id, id))
+      .returning();
+    res.json(fromDb(row!));
+  }),
+);
+
 // POST /api/v1/moodboard-items
 moodboardItemsRouter.post(
   "/",
