@@ -8,6 +8,13 @@
       "when": 1778565346458,
       "tag": "0000_common_big_bertha",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1778566107198,
+      "tag": "0001_flippant_rick_jones",
+      "breakpoints": true
     }
   ]
 }

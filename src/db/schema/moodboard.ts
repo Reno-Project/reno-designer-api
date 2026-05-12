@@ -175,6 +175,22 @@ export const moodboardComments = designers.table("moodboard_comments", {
 });
 
 /**
+ * slide_templates — saved slide layouts that the moodboard can apply.
+ * `user_id IS NULL` denotes a global preset visible to every user; non-null
+ * means a personal template owned by that user.
+ */
+export const slideTemplates = designers.table("slide_templates", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id"),
+  name: text("name").notNull(),
+  description: text("description"),
+  icon: text("icon"),
+  isPreset: boolean("is_preset").notNull().default(false),
+  positions: jsonb("positions").notNull().default(sql`'[]'::jsonb`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
  * moodboard_floorplan_zones — coloured polygon zones drawn over a floorplan item.
  */
 export const moodboardFloorplanZones = designers.table("moodboard_floorplan_zones", {
@@ -198,3 +214,5 @@ export type MoodboardComment = typeof moodboardComments.$inferSelect;
 export type NewMoodboardComment = typeof moodboardComments.$inferInsert;
 export type MoodboardFloorplanZone = typeof moodboardFloorplanZones.$inferSelect;
 export type NewMoodboardFloorplanZone = typeof moodboardFloorplanZones.$inferInsert;
+export type SlideTemplate = typeof slideTemplates.$inferSelect;
+export type NewSlideTemplate = typeof slideTemplates.$inferInsert;
